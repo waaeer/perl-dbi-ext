@@ -18,11 +18,13 @@ for my $i (0..1) {
 	$n ||= $res;
 }
 
+#warn "restart 1 n=$n\n";
 system("$bindir/pg_ctl", "-D", $dbdir, '-l', "/tmp/pglog-$<", 'restart') && die("Cannot restart postgres: $!");
 
 for my $i (0..2) {
 	sleep(1);
 	my $res = eval { $dbi->selectrow_arrayref($cmd)->[0]; };
+#	warn "After first restart $i : res= $res\n";
 	if($res == $n) { $n_good_results++; }
 }
 
@@ -31,6 +33,7 @@ system("$bindir/pg_ctl", "-D", $dbdir, '-l', "/tmp/pglog-$<", 'restart') && die(
 for my $i (0..2) {
 	sleep(1);
 	my $res = eval { $dbi->selectrow_arrayref($cmd)->[0]; };
+#	warn "After second restart $i : res= $res\n";
 	if($res == $n) { $n_good_results++; }
 }
 
@@ -38,6 +41,7 @@ if($n_good_results == 4) {
 	print "ok 1\n";
 } else { 
 	print "not ok 1\n";
+#	warn "good_results: $n_good_results\n";
 }
 
 eval { $dbi->do('create table t (x int)'); };
@@ -94,9 +98,7 @@ if($t == 0) {
 system("$bindir/pg_ctl", "-D", $dbdir, '-l', "/tmp/pglog-$<", 'restart') && die("Cannot restart postgres: $!");
 
 $dbi->begin_work();
-warn "BEGAN\n";
 $dbi->do('insert into t values (1)');
-warn "INSERTED\n";
 $dbi->rollback();
 
 $t = $dbi->selectrow_arrayref('select sum(x) from t')->[0];
@@ -106,8 +108,8 @@ if($t == 0) {
 	print "not ok 5\n";
 	warn "t=$t\n";
 }
-warn "END\n";
 
+# транзакция  сразрывом соединения посередине
 
 
 

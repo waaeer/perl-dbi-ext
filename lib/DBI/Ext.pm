@@ -52,7 +52,6 @@ sub connect {
 
 sub reconnect {
 	my $self = shift;
-warn "in reconnect\n";
 	if ($self->{DBH}) { 
 		if( $self->{DBH}->ping) { 
 			return 1; #success
@@ -93,7 +92,7 @@ sub AUTOLOAD {
 			die("Database $self->{dsn} not connected");
 		}
 		my $ret = eval { $self->{DBH}->$al_func(@opt); };
-		if($@ || !defined $ret) { 
+		if($@ || $self->{DBH}->state) { 
 			$self->process_error();
 		}
 		return $ret;
@@ -114,7 +113,7 @@ sub process_error {
 	my $sqlstate = $self->{DBH} ? $self->{DBH}->state : '0888';			
 	my $err      = $self->{DBH} ? $self->{DBH}->errstr : 'No connection';
 #	warn "SQLSTATE=$sqlstate; err=$err\n";
-	if($sqlstate =~ /^08/) { # connection problems
+	if($sqlstate =~ /^08|^57P01/) { # connection problems | terminated connection due to administrator command
 		$self->{connection_lost} = 1;
 		$self->{in_transaction}  = 0;
 		undef $self->{DBH};     # will cause remy $dbdir = "/tmp/pgdata-$<";connect next time
@@ -129,7 +128,7 @@ sub process_error {
 	} elsif($self->{in_transaction}) {
 		$self->rollback;
 	}
-	die $err;
+	Carp::confess $err;
 }
 sub begin_subtransaction { 
 	my $self = shift;
@@ -220,11 +219,26 @@ sub select_hashes {
 	my @rows; 
     while (my $r = $sth->fetchrow_hashref) {
 		push @rows, $r;
+		# Unfortunately, DBD::Pg expands only arrays of harcoded types. And never expands JSON's
+		foreach my $k (keys %$r) { 
+				# временно - затычка (надо патчить DBD::Pg)
+				# надо разобраться с JSON(B) и с массивами неизвестных типов
+		}
 	}
     $sth->finish;
 	return \@rows;
 }
 
+sub transaction { 
+	my ($self, $func, %opt) = @_;
+	$self->begin_work;
+	my $ret = eval { &$func; };
+	if ($@) { 
+		$self->rollback;
+		return undef;
+	}
+	return $ret;
+}
 
 1;
 
