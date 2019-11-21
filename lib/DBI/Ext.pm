@@ -231,8 +231,8 @@ sub select_hashes {
 
 sub transaction { 
 	my ($self, $func, %opt) = @_;
-	$self->begin_work;
-	my $ret = eval { &$func; };
+
+	my $ret = eval { 	$self->begin_work; &$func;  $self->commit; };
 	if ($@) { 
 		$self->rollback;
 		return undef;
