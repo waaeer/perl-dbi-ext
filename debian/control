@@ -10,6 +10,6 @@ Homepage: https://metacpan.org/release/DBI-Ext
 Package: libdbi-ext-perl
 Architecture: all
 Depends: ${misc:Depends}, ${perl:Depends}, 
-  libdbi-perl, libdbd-pg, libtime-hires-perl
+  libdbi-perl, libdbd-pg-perl, libtime-hires-perl
 Description: DBI wrapper with useful features
 
