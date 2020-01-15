@@ -8,7 +8,11 @@ open (my $p,"$pgconfig --bindir|") || die("Cannot open pipe from $pgconfig: $!")
 my $bindir = <$p>; chomp($bindir);
 close $p;
 
-my $dbdir = "/tmp/pgdata-$<";
+if(! $> ) { 
+	$< = $> = getpwnam('postgres');
+}
+
+my $dbdir = "/tmp/pgdata-$>";
 
 if( -f "$dbdir/postmaster.pid") { 
 	system("$bindir/pg_ctl", "-D", $dbdir, '-m', 'immediate', 'stop');

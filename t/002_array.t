@@ -7,7 +7,11 @@ my $pgconfig = $ENV{PGCONFIG} || 'pg_config';
 open P, "$pgconfig --bindir |";
 my $bindir = <P>; chomp($bindir);
 my $port = 10900; ## toDo: selected port
-my $dbdir = "/tmp/pgdata-$<";
+if(! $> ) { 
+	$< = $> = getpwnam('postgres');
+}
+
+my $dbdir = "/tmp/pgdata-$>";
 
 
 my $dbi = DBI::Ext->new(dsn=>"dbi:Pg:dbname=postgres;host=/tmp;port=$port", reconnect_on_error=>1);
