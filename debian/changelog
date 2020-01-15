@@ -4,6 +4,6 @@ libdbi-ext-perl (0.1-1) unstable; urgency=medium
   * transactions and subtransactions
   * automatic reconnect
 
- -- Ivan Panchenko <wao@mail.ru>  Web, 15 Jan 2019 20:41:00 +0300
+ -- Ivan Panchenko <wao@mail.ru>  Wed, 15 Jan 2019 20:41:00 +0300
 
 

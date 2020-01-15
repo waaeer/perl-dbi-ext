@@ -1,0 +1,15 @@
+Makefile.PL
+README.md
+debian/source/format
+debian/compat
+debian/control
+debian/copyright
+debian/changelog
+debian/rules
+LICENSE
+lib/DBI/Ext.pm
+t/002_array.t
+t/999_cleanup_db.t
+t/001_restart.t
+t/000_initdb.t
+MANIFEST
