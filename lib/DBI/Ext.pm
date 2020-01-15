@@ -3,7 +3,7 @@ use strict;
 use DBI qw(:sql_types);
 use Time::HiRes;
 use vars qw($VERSION $AUTOLOAD);
-$VERSION = '0.0.1';
+$VERSION = '0.1';
 use Carp;
 
 sub new { #
