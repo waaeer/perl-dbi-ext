@@ -1,0 +1,15 @@
+Source: libdbi-ext-perl
+Section: perl
+Priority: optional
+Maintainer: Ivan Panchenko <wao@mail.ru>
+Build-Depends: debhelper (>= 9)
+Build-Depends-Indep: perl
+Standards-Version: 3.9.8
+Homepage: https://metacpan.org/release/DBI-Ext
+
+Package: libdbi-ext-perl
+Architecture: all
+Depends: ${misc:Depends}, ${perl:Depends}, 
+  libdbi-perl, libdbd-pg, libtime-hires-perl
+Description: DBI wrapper with useful features
+
