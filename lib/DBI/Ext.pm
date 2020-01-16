@@ -37,12 +37,12 @@ sub disconnect {
 
 sub connect {
 	my $self = shift;
-	my $dbh = $self->{DBH} = eval { DBI->connect(@{$self}{qw (dsn user password)},{PrintError => 1, RaiseError => 1, AutoCommit => 1, %{$self->{attr}}}); };
+	my $dbh = $self->{DBH} =  DBI->connect(@{$self}{qw (dsn user password)},{%{$self->{attr}}, PrintError => 0, RaiseError => 0, AutoCommit => 1 });
 	if($dbh) {
 		$self->{connect_later} = 0;
 		$self->{connection_lost} = 0;
 		$self->{in_transaction}  = 0;
-		&{$self->{postconnect}}($self) if($self->{postconnect});
+		&{$self->{postconnect}}($self) if($self->{postconnect}); 
 		return 1;
 	} else {
 		warn "Connect error: ".$DBI::errstr;
@@ -91,8 +91,8 @@ sub AUTOLOAD {
 		if(!$self->{DBH}) { 
 			die("Database $self->{dsn} not connected");
 		}
-		my $ret = eval { $self->{DBH}->$al_func(@opt); };
-		if($@ || $self->{DBH}->state) { 
+		my $ret = $self->{DBH}->$al_func(@opt); 
+		if($self->{DBH}->state) { 
 			$self->process_error();
 		}
 		return $ret;
@@ -123,12 +123,14 @@ sub process_error {
 				or $self->process_error();
 			}
 		}
-
-
+	
 	} elsif($self->{in_transaction}) {
 		$self->rollback;
+		Carp::cluck($err);
+		die bless [$err], 'DBI::Ext::RolledBackError';	
 	}
-	Carp::confess $err;
+	Carp::cluck($err);
+	die $err;
 }
 sub begin_subtransaction { 
 	my $self = shift;
@@ -177,6 +179,7 @@ sub begin_work {
 	if($self->{connect_later} || $self->{reconnect_on_error}) {
 		$self->reconnect;
 	}
+#	$self->{DBH}->{AutoCommit} = 0;
 	$self->{DBH}->begin_work();
 	$self->{_savepoint} = 0;
 	$self->{_savepoints} = [];
@@ -191,10 +194,10 @@ sub commit {
 	}
 	my $rc = eval { $self->{DBH}->commit() };
 	if(!$rc) { 
-		warn "process error inc ommit r=$rc\n";
 		$self->process_error();
 	}
 	$self->{in_transaction} = 0;
+	$self->{DBH}->{AutoCommit} = 1;
 } 
 
 sub rollback { 
@@ -204,6 +207,7 @@ sub rollback {
 	} else { 
 		if(eval{$self->{DBH}->rollback}) { 
 			$self->{in_transaction} = 0;
+			$self->{DBH}->{AutoCommit} = 1;
 		} else { 
 			my $newerr = $self->{DBH}->errstr;
 			warn "Panic: cannot rollback: $newerr";
@@ -234,8 +238,12 @@ sub transaction {
 
 	my $ret = eval { $self->begin_work; my $ret = &$func; $self->commit; return $ret; };
 	if (my $err = $@) { 
-		$self->rollback;
-		return undef;
+		if(ref($err) && $err->isa('DBI::Ext::RolledBackError')) { 
+			die $err->[0];
+		} else { 
+			$self->rollback;
+			die $err;
+		}
 	}
 	return $ret;
 }
