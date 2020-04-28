@@ -255,8 +255,18 @@ sub transaction {
 features:
 1) reconnect
 2) transaction
-3) select_hashes with expanding json and arrays in 
+3) select_hashes (toDo: with expanding json and arrays in )
 
+SYNOPIS
+
+ my $dbi = DBI::Ext->new(dsn=>"dbi:Pg:dbname=postgres;host=/tmp;port=$port", reconnect_on_error=>1);
+ $dbi->connect_later; # enable automatic connection on first query
+
+ $dbi->selectrow_arrayref()    # similar to DBI
+ $dbi->select_hashes()         # returns array of {}
+ $dbi->transaction(sub {       # functional transaction call. rollbacks on die
+   ...
+ });
 
 
 =cut
