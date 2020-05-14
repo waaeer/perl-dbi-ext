@@ -81,7 +81,7 @@ sub AUTOLOAD {
 
 	no strict 'refs';
 	my $al_func = $AUTOLOAD;
-	$al_func =~ s/^.*DBI::Ext:://;
+	$al_func =~ s/^.*::(\w+)$/$1/;
 
 	my $func = sub { 
 		my ($self, @opt) = @_;
