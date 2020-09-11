@@ -2,6 +2,8 @@ package DBI::Ext;
 use strict;
 use DBI qw(:sql_types);
 use Time::HiRes;
+use Encode;
+use JSON::XS;
 use vars qw($VERSION $AUTOLOAD);
 $VERSION = '0.1';
 use Carp;
@@ -99,12 +101,6 @@ sub AUTOLOAD {
 	};
 	*{$AUTOLOAD} = $func;
 	return $func->(@args);
-}
-
-sub select_hashes { 
-# toDo	
-	
-
 }
 
 sub process_error {
@@ -246,6 +242,14 @@ sub transaction {
 		}
 	}
 	return $ret;
+}
+
+
+sub to_json { 
+	return Encode::decode_utf8(JSON::XS::encode_json($_[0]));
+}
+sub from_json { 
+	return JSON::XS::decode_json(Encode::encode_utf8($_[0]));
 }
 
 1;
