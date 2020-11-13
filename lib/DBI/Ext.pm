@@ -94,7 +94,8 @@ sub AUTOLOAD {
 			die("Database $self->{dsn} not connected");
 		}
 		my $ret = $self->{DBH}->$al_func(@opt); 
-		if($self->{DBH}->state) { 
+		my $err = $self->{DBH}->errstr;
+		if($err) { 
 			$self->process_error();
 		}
 		return $ret;
@@ -108,7 +109,6 @@ sub process_error {
 	my %opt  = @_;
 	my $sqlstate = $self->{DBH} ? $self->{DBH}->state : '0888';			
 	my $err      = $self->{DBH} ? $self->{DBH}->errstr : 'No connection';
-#	warn "SQLSTATE=$sqlstate; err=$err\n";
 	if($sqlstate =~ /^08|^57P01/) { # connection problems | terminated connection due to administrator command
 		$self->{connection_lost} = 1;
 		$self->{in_transaction}  = 0;
@@ -122,8 +122,8 @@ sub process_error {
 	
 	} elsif($self->{in_transaction}) {
 		$self->rollback;
-		Carp::cluck($err);
-		die bless [$err], 'DBI::Ext::RolledBackError';	
+		Carp::cluck($sqlstate, $err);
+		die bless [$err, $sqlstate], 'DBI::Ext::RolledBackError';	
 	}
 	Carp::cluck($err);
 	die $err;
