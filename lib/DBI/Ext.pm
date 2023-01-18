@@ -5,7 +5,7 @@ use Time::HiRes;
 use Encode;
 use JSON::XS;
 use vars qw($VERSION $AUTOLOAD);
-$VERSION = '0.1';
+$VERSION = '0.2';
 use Carp;
 
 sub new { #
