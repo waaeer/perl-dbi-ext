@@ -93,10 +93,15 @@ sub AUTOLOAD {
 		if(!$self->{DBH}) { 
 			die("Database $self->{dsn} not connected");
 		}
-		my $ret = $self->{DBH}->$al_func(@opt); 
-		my $err = $self->{DBH}->errstr;
-		if($err) { 
-			$self->process_error();
+		my $ret;
+		while(1) {
+			$ret = $self->{DBH}->$al_func(@opt); 
+			my $err = $self->{DBH}->errstr;
+			if($err) { 
+				$self->process_error();
+			} else { 
+				last;
+			}
 		}
 		return $ret;
 	};
@@ -109,20 +114,30 @@ sub process_error {
 	my %opt  = @_;
 	my $sqlstate = $self->{DBH} ? $self->{DBH}->state : '0888';			
 	my $err      = $self->{DBH} ? $self->{DBH}->errstr : 'No connection';
+#   warn "process error [$sqlstate;$err]\n";
 	if($sqlstate =~ /^08|^57P01/) { # connection problems | terminated connection due to administrator command
 		$self->{connection_lost} = 1;
-		$self->{in_transaction}  = 0;
-		undef $self->{DBH};     # will cause remy $dbdir = "/tmp/pgdata-$<";connect next time
-		if($opt{retry}) { 
-			if($self->reconnect()) {
-				eval { $opt{retry}->(); } 
-				or $self->process_error();
+		if($self->{in_transaction}) { 
+			Carp::cluck("in transaction sqlstate=$sqlstate ", $err);
+			if($opt{exiting_transaction}) {
+#				warn "Exiting transaction\n";
+				$self->{in_transaction} = 0;
+				$self->{DBH}->{AutoCommit} = 1;
 			}
-		}
-	
+			die bless [$err, $sqlstate], 'DBI::Ext::RolledBackError';
+		}	
+
+		undef $self->{DBH};     # will cause reconnect next time
+		if($self->{reconnect_on_error}) { 
+			if($self->reconnect()) {
+				Carp::cluck($err);
+				return;
+			}
+		}	
+		# go to default	behavior (die)
 	} elsif($self->{in_transaction}) {
 		$self->rollback;
-		Carp::cluck($sqlstate, $err);
+		Carp::cluck("sqlstate=$sqlstate ", $err);
 		die bless [$err, $sqlstate], 'DBI::Ext::RolledBackError';	
 	}
 	Carp::cluck($err);
@@ -189,8 +204,9 @@ sub commit {
 		return $self->commit_subtransaction();
 	}
 	my $rc = eval { $self->{DBH}->commit() };
-	if(!$rc) { 
-		$self->process_error();
+	if(!$rc || ($self->{DBH}->state =~ /^08/)) { 
+#warn "COMMIT ERROR EC\n";
+		$self->process_error(exiting_transaction => 1);
 	}
 	$self->{in_transaction} = 0;
 	$self->{DBH}->{AutoCommit} = 1;

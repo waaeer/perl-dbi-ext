@@ -1,6 +1,6 @@
 use strict;
 use DBI::Ext;
-print "1..5\n";
+print "1..9\n";
 my $pgconfig = $ENV{PGCONFIG} || 'pg_config';
 open P, "$pgconfig --bindir |";
 my $bindir = <P>; chomp($bindir);
@@ -27,7 +27,7 @@ system("$bindir/pg_ctl", "-D", $dbdir, '-l', "/tmp/pglog-$<", 'restart') && die(
 
 for my $i (0..2) {
 	sleep(1);
-	my $res = eval { $dbi->selectrow_arrayref($cmd)->[0]; };
+	my $res = $dbi->selectrow_arrayref($cmd)->[0];
 #	warn "After first restart $i : res= $res\n";
 	if($res == $n) { $n_good_results++; }
 }
@@ -36,12 +36,12 @@ system("$bindir/pg_ctl", "-D", $dbdir, '-l', "/tmp/pglog-$<", 'restart') && die(
 
 for my $i (0..2) {
 	sleep(1);
-	my $res = eval { $dbi->selectrow_arrayref($cmd)->[0]; };
+	my $res = $dbi->selectrow_arrayref($cmd)->[0];
 #	warn "After second restart $i : res= $res\n";
 	if($res == $n) { $n_good_results++; }
 }
 
-if($n_good_results == 4) { 
+if($n_good_results == 6) { 
 	print "ok 1\n";
 } else { 
 	print "not ok 1\n";
@@ -114,15 +114,35 @@ if($t == 0) {
 }
 
 # транзакция  сразрывом соединения посередине
+$dbi->do('insert into t values (1)');
+$dbi->begin_work();
+$dbi->do('insert into t values (2)');
+system("$bindir/pg_ctl", "-D", $dbdir, '-l', "/tmp/pglog-$<", 'restart') && die("Cannot restart postgres: $!");
 
+eval { $dbi->do('insert into t values (4)');   }; # эта штука должна свалиться
+print (($@ ? 'ok' : 'not ok')." 6\n");
 
+eval { $dbi->do('insert into t values (8)');   }; # и эта штука должна свалиться
+print (($@ ? 'ok' : 'not ok')." 7\n");
 
+warn "TEST COMMIT\n";
+eval { $dbi->commit();   }; # и эта штука должна свалиться
 
+warn "TEST COMMIT DONE///////////\n";
 
+print (($@ ? 'ok' : 'not ok')." 8\n");
 
+$dbi->do('insert into t values (16)');  # а эта - уже нет.
 
+warn "INSERTED QQQ\n";
 
-
+$t = $dbi->selectrow_arrayref('select sum(x) from t')->[0];
+if($t == 17) {
+	print "ok 9\n";
+} else { 
+	print "not ok 9\n";
+	warn "t=$t\n";
+}
 
 
 
