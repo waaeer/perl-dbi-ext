@@ -1,3 +1,9 @@
+libdbi-ext-perl (0.2-1) unstable; urgency=medium
+
+  * Fixed reconnect
+
+ -- Ivan Panchenko <wao@mail.ru>  Wed, 18 Jan 2023 23:55:55 +0300
+
 libdbi-ext-perl (0.1-1) unstable; urgency=medium
 
   * DBI wrapper for DBD::Pg
