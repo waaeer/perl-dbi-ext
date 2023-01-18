@@ -125,16 +125,16 @@ print (($@ ? 'ok' : 'not ok')." 6\n");
 eval { $dbi->do('insert into t values (8)');   }; # и эта штука должна свалиться
 print (($@ ? 'ok' : 'not ok')." 7\n");
 
-warn "TEST COMMIT\n";
+#warn "TEST COMMIT\n";
 eval { $dbi->commit();   }; # и эта штука должна свалиться
 
-warn "TEST COMMIT DONE///////////\n";
+#warn "TEST COMMIT DONE///////////\n";
 
 print (($@ ? 'ok' : 'not ok')." 8\n");
 
 $dbi->do('insert into t values (16)');  # а эта - уже нет.
 
-warn "INSERTED QQQ\n";
+#warn "INSERTED QQQ\n";
 
 $t = $dbi->selectrow_arrayref('select sum(x) from t')->[0];
 if($t == 17) {
@@ -144,7 +144,7 @@ if($t == 17) {
 	warn "t=$t\n";
 }
 
-
+################### toDo: reconnect just before commit; reconnect in subtransaction
 
 
 
